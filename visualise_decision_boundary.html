@@ -1,0 +1,240 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Perceptron Visualization - Decision Boundary</title>
+    <!-- Include Chart.js library from a CDN -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        body {
+            font-family: sans-serif;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            margin: 0;
+            flex-direction: column;
+            gap: 20px;
+        }
+
+        .controls {
+            font-size: 1.2em;
+            padding: 10px;
+        }
+
+        #chart-container {
+            width: 500px;
+            height: 500px;
+        }
+
+        h1 {
+            text-align: center;
+        }
+    </style>
+</head>
+
+<body>
+
+    <div class="controls">
+        <label for="gate-select">Choose a Logic Gate:</label>
+        <select id="gate-select">
+            <option value="AND">AND (Linear)</option>
+            <option value="OR">OR (Linear)</option>
+            <option value="NAND">NAND (Linear)</option>
+            <option value="NOR">NOR (Linear)</option>
+            <option value="XOR">XOR (Non-Linear)</option>
+            <option value="XNOR" selected>XNOR (Non-Linear)</option>
+        </select>
+    </div>
+
+    <div id="chart-container">
+        <canvas id="myChart"></canvas>
+    </div>
+
+    <script>
+        // --- 1. Neural Network Classes ---
+
+        class Perceptron {
+            constructor(learningRate = 0.1, epochs = 50) {
+                this.lr = learningRate;
+                this.epochs = epochs;
+                this.weights = null;
+                this.bias = null;
+            }
+            predict(X) {
+                let sum = this.bias;
+                for (let i = 0; i < X.length; i++) sum += X[i] * this.weights[i];
+                return sum >= 0 ? 1 : 0;
+            }
+            fit(X, y) {
+                const nFeatures = X[0].length;
+                this.weights = new Array(nFeatures).fill(0.0);
+                this.bias = 0.0;
+                for (let epoch = 0; epoch < this.epochs; epoch++) {
+                    for (let i = 0; i < X.length; i++) {
+                        const update = this.lr * (y[i] - this.predict(X[i]));
+                        if (update !== 0) {
+                            for (let j = 0; j < this.weights.length; j++) this.weights[j] += update * X[i][j];
+                            this.bias += update;
+                        }
+                    }
+                }
+            }
+        }
+
+        class MultiLayerPerceptron {
+            constructor(inputNodes, hiddenNodes, outputNodes) {
+                this.inputNodes = inputNodes;
+                this.hiddenNodes = hiddenNodes;
+                this.outputNodes = outputNodes;
+                this.weights_ih = this.randomMatrix(hiddenNodes, inputNodes);
+                this.weights_ho = this.randomMatrix(outputNodes, hiddenNodes);
+                this.bias_h = this.randomMatrix(hiddenNodes, 1);
+                this.bias_o = this.randomMatrix(outputNodes, 1);
+            }
+            sigmoid(x) { return 1 / (1 + Math.exp(-x)); }
+            sigmoidDerivative(y) { return y * (1 - y); }
+            randomMatrix(rows, cols) {
+                const matrix = [];
+                for (let i = 0; i < rows; i++) {
+                    matrix[i] = [];
+                    for (let j = 0; j < cols; j++) matrix[i][j] = Math.random() * 2 - 1;
+                }
+                return matrix;
+            }
+            predict(inputArray) {
+                const inputs = inputArray.map(val => [val]);
+                const hidden = [];
+                for (let i = 0; i < this.hiddenNodes; i++) {
+                    let sum = this.bias_h[i][0];
+                    for (let j = 0; j < this.inputNodes; j++) sum += this.weights_ih[i][j] * inputs[j][0];
+                    hidden[i] = [this.sigmoid(sum)];
+                }
+                const output = [];
+                for (let i = 0; i < this.outputNodes; i++) {
+                    let sum = this.bias_o[i][0];
+                    for (let j = 0; j < this.hiddenNodes; j++) sum += this.weights_ho[i][j] * hidden[j][0];
+                    output[i] = [this.sigmoid(sum)];
+                }
+                return output.map(val => val[0]);
+            }
+            fit(X, y, epochs = 5000, lr = 0.1) {
+                for (let e = 0; e < epochs; e++) {
+                    for (let i = 0; i < X.length; i++) {
+                        const inputs = X[i].map(v => [v]);
+                        const target = y[i];
+                        // Forward
+                        const hidden = [];
+                        for (let r = 0; r < this.hiddenNodes; r++) {
+                            let sum = this.bias_h[r][0];
+                            for (let c = 0; c < this.inputNodes; c++) sum += this.weights_ih[r][c] * inputs[c][0];
+                            hidden[r] = [this.sigmoid(sum)];
+                        }
+                        const outputs = [];
+                        for (let r = 0; r < this.outputNodes; r++) {
+                            let sum = this.bias_o[r][0];
+                            for (let c = 0; c < this.hiddenNodes; c++) sum += this.weights_ho[r][c] * hidden[c][0];
+                            outputs[r] = [this.sigmoid(sum)];
+                        }
+                        // Backward
+                        const out_err = target.map((t, idx) => [t - outputs[idx][0]]);
+                        const out_grad = outputs.map((o, idx) => [this.sigmoidDerivative(o[0]) * out_err[idx][0] * lr]);
+                        const hid_err = [];
+                        for (let r = 0; r < this.hiddenNodes; r++) {
+                            let err = 0;
+                            for (let c = 0; c < this.outputNodes; c++) err += this.weights_ho[c][r] * out_err[c][0];
+                            hid_err[r] = [err];
+                        }
+                        const hid_grad = hidden.map((h, idx) => [this.sigmoidDerivative(h[0]) * hid_err[idx][0] * lr]);
+                        // Update
+                        for (let r = 0; r < this.outputNodes; r++) {
+                            this.bias_o[r][0] += out_grad[r][0];
+                            for (let c = 0; c < this.hiddenNodes; c++) this.weights_ho[r][c] += out_grad[r][0] * hidden[c][0];
+                        }
+                        for (let r = 0; r < this.hiddenNodes; r++) {
+                            this.bias_h[r][0] += hid_grad[r][0];
+                            for (let c = 0; c < this.inputNodes; c++) this.weights_ih[r][c] += hid_grad[r][0] * inputs[c][0];
+                        }
+                    }
+                }
+            }
+        }
+
+        // --- 2. Chart.js Plugin for Decision Boundary ---
+        const decisionBoundaryPlugin = {
+            id: 'decisionBoundary',
+            beforeDraw: (chart) => {
+                const { ctx, chartArea: { top, bottom, left, right }, scales: { x, y } } = chart;
+                const model = chart.config.options.plugins.decisionBoundary.model;
+                if (!model) return;
+
+                const resolution = 5; // Pixel size of grid blocks
+                ctx.save();
+                for (let px = left; px <= right; px += resolution) {
+                    for (let py = top; py <= bottom; py += resolution) {
+                        const xVal = x.getValueForPixel(px);
+                        const yVal = y.getValueForPixel(py);
+
+                        let prediction = model.predict([xVal, yVal]);
+                        if (Array.isArray(prediction)) prediction = prediction[0];
+
+                        // Color logic: Red (0) to Blue (1)
+                        const r = (1 - prediction) * 255 + prediction * 54;
+                        const g = (1 - prediction) * 99 + prediction * 162;
+                        const b = (1 - prediction) * 132 + prediction * 235;
+
+                        ctx.fillStyle = `rgba(${r},${g},${b},0.2)`;
+                        ctx.fillRect(px, py, resolution, resolution);
+                    }
+                }
+                ctx.restore();
+            }
+        };
+        Chart.register(decisionBoundaryPlugin);
+
+        // --- 3. Main Logic ---
+        const X = [[0, 0], [0, 1], [1, 0], [1, 1]];
+        const gateData = {
+            AND: { y: [0, 0, 0, 1], name: "AND", separable: true },
+            OR: { y: [0, 1, 1, 1], name: "OR", separable: true },
+            NAND: { y: [1, 1, 1, 0], name: "NAND", separable: true },
+            NOR: { y: [1, 0, 0, 0], name: "NOR", separable: true },
+            XOR: { y: [0, 1, 1, 0], name: "XOR", separable: false },
+            XNOR: { y: [1, 0, 0, 1], name: "XNOR", separable: false },
+        };
+
+        const ctx = document.getElementById('myChart').getContext('2d');
+        const myChart = new Chart(ctx, {
+            type: 'scatter',
+            data: { datasets: [{ label: 'Class 1', data: [], backgroundColor: 'rgba(54, 162, 235, 1)', pointRadius: 15 }, { label: 'Class 0', data: [], backgroundColor: 'rgba(255, 99, 132, 1)', pointRadius: 15, pointStyle: 'rect' }] },
+            options: {
+                responsive: true, maintainAspectRatio: false,
+                plugins: { decisionBoundary: { model: null }, title: { display: true, text: '', font: { size: 16 } } },
+                scales: { x: { min: -0.5, max: 1.5, title: { display: true, text: 'Input 1' } }, y: { min: -0.5, max: 1.5, title: { display: true, text: 'Input 2' } } }
+            }
+        });
+
+        function updateChart(gateName) {
+            const data = gateData[gateName];
+            let model;
+            if (data.separable) {
+                model = new Perceptron(0.1, 100);
+                model.fit(X, data.y);
+            } else {
+                model = new MultiLayerPerceptron(2, 4, 1);
+                model.fit(X, data.y.map(v => [v]), 5000, 0.1);
+            }
+            myChart.options.plugins.decisionBoundary.model = model;
+            myChart.data.datasets[0].data = X.filter((_, i) => data.y[i] === 1).map(p => ({ x: p[0], y: p[1] }));
+            myChart.data.datasets[1].data = X.filter((_, i) => data.y[i] === 0).map(p => ({ x: p[0], y: p[1] }));
+            myChart.options.plugins.title.text = `${data.name} Gate`;
+            myChart.update();
+        }
+        document.getElementById('gate-select').addEventListener('change', (e) => updateChart(e.target.value));
+        setTimeout(() => updateChart('XNOR'), 100);
+    </script>
+</body>
+
+</html>
