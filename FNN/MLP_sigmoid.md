@@ -31,43 +31,42 @@ The training process uses **Stochastic Gradient Descent (SGD)**. Below are the c
 **2** | **Hidden Layer Delta ($\delta_h$)** | $\delta_h = (\sum w_o \delta_o) \cdot H(1 - H)$ 
 ```javascript
         // Calculate deltas for the hidden layer neurons
-        for (let j = 0; j < this.hiddenLayer.neurons.length; j++) {
-            const hiddenNeuron = this.hiddenLayer.neurons[j];
-            let error = 0.0;
-            // Sum the contributions of this hidden neuron's output to the errors of all output neurons
-            for (let k = 0; k < this.outputLayer.neurons.length; k++) {
-                const outputNeuron = this.outputLayer.neurons[k];
-                error += outputNeuron.weights[j] * outputNeuron.delta;
-            }
-            hiddenNeuron.delta = error * sigmoidDerivative(hiddenNeuron.output);
-        }
+  for (let j = 0; j < this.hiddenLayer.neurons.length; j++) {
+      const hiddenNeuron = this.hiddenLayer.neurons[j];
+      let error = 0.0;
+      // Sum the contributions of this hidden neuron's output to the errors of all output neurons
+      for (let k = 0; k < this.outputLayer.neurons.length; k++) {
+          const outputNeuron = this.outputLayer.neurons[k];
+          error += outputNeuron.weights[j] * outputNeuron.delta;
+      }
+      hiddenNeuron.delta = error * sigmoidDerivative(hiddenNeuron.output);
+  }
 ```
 **3O** | **Weight Update Output Layer ($w$)** | $w = w + (\eta \cdot \delta \cdot \text{input})$
 **4O** | **Bias Update Output Layer ($b$)** | $b = b + (\eta \cdot \delta)$
 ```javascript
-        // 3. Update all weights and biases in the network
 
-        // Update output layer weights
-        for (let i = 0; i < this.outputLayer.neurons.length; i++) {
-            const neuron = this.outputLayer.neurons[i];
-            for (let j = 0; j < neuron.weights.length; j++) {
-                // hiddenOutputs[j] is the input to this output neuron
-                neuron.weights[j] += learningRate * neuron.delta * hiddenOutputs[j];
-            }
-            neuron.bias += learningRate * neuron.delta;
-        }
+   // Update output layer weights & bias
+   for (let i = 0; i < this.outputLayer.neurons.length; i++) {
+       const neuron = this.outputLayer.neurons[i];
+       for (let j = 0; j < neuron.weights.length; j++) {
+           // hiddenOutputs[j] is the input to this output neuron
+           neuron.weights[j] += learningRate * neuron.delta * hiddenOutputs[j];
+       }
+       neuron.bias += learningRate * neuron.delta;
+   }
 ```
 **3H** | **Weight Update Hidden Layer ($w$)** | $w = w + (\eta \cdot \delta \cdot \text{input})$
 **4H** | **Bias Update Hidden Layer ( $b$)** | $b = b + (\eta \cdot \delta)$
 ```javascript
-        // Update hidden layer weights
-        for (let i = 0; i < this.hiddenLayer.neurons.length; i++) {
-            const neuron = this.hiddenLayer.neurons[i];
-            for (let j = 0; j < neuron.weights.length; j++) {
-                // inputs[j] is the input to this hidden neuron
-                neuron.weights[j] += learningRate * neuron.delta * inputs[j];
-            }
-            neuron.bias += learningRate * neuron.delta;
+    // Update hidden layer weights & bias
+    for (let i = 0; i < this.hiddenLayer.neurons.length; i++) {
+        const neuron = this.hiddenLayer.neurons[i];
+        for (let j = 0; j < neuron.weights.length; j++) {
+            // inputs[j] is the input to this hidden neuron
+            neuron.weights[j] += learningRate * neuron.delta * inputs[j];
         }
+        neuron.bias += learningRate * neuron.delta;
     }
-    ```
+}
+```
