@@ -42,7 +42,8 @@ The training process uses **Stochastic Gradient Descent (SGD)**. Below are the c
             hiddenNeuron.delta = error * sigmoidDerivative(hiddenNeuron.output);
         }
 ```
-**3** | **Weight Update ($w$)** | $w = w + (\eta \cdot \delta \cdot \text{input})$
+**3O** | **Weight Update Output Layer ($w$)** | $w = w + (\eta \cdot \delta \cdot \text{input})$
+**4O** | **Bias Update Output Layer ($b$)** | $b = b + (\eta \cdot \delta)$
 ```javascript
         // 3. Update all weights and biases in the network
 
@@ -56,7 +57,8 @@ The training process uses **Stochastic Gradient Descent (SGD)**. Below are the c
             neuron.bias += learningRate * neuron.delta;
         }
 ```
-**4** | **Bias Update ($b$)** | $b = b + (\eta \cdot \delta)$
+**3H** | **Weight Update Hidden Layer ($w$)** | $w = w + (\eta \cdot \delta \cdot \text{input})$
+**4H** | **Bias Update Hidden Layer ( $b$)** | $b = b + (\eta \cdot \delta)$
 ```javascript
         // Update hidden layer weights
         for (let i = 0; i < this.hiddenLayer.neurons.length; i++) {
