@@ -1,4 +1,4 @@
-### Traing Steps
+### Training Steps
 
 The training process uses **Stochastic Gradient Descent (SGD)**. Below are the calculus-based formulas applied in the `train()` method to minimize the error using the Chain Rule.
 
